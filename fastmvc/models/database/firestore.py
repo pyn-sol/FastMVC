@@ -1,4 +1,5 @@
 from google.cloud import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 from fastmvc.models.database._base import BaseDataModel, DBModelMetaClass
 
 
@@ -45,7 +46,7 @@ class Firestore(BaseDataModel, metaclass=FirestoreModelMeta):
     def query(cls, statement: dict):
         query = cls.__db__
         for k, v in statement.items():
-            query = query.where(k, '==', v)
+            query = query.where(filter=FieldFilter(k, '==', v))
         for record in query.stream():
             yield cls.__parsed(record)
 
@@ -64,7 +65,7 @@ class Firestore(BaseDataModel, metaclass=FirestoreModelMeta):
         return doc_ref.id
 
     def save(self):
-        data = self.dict()
+        data = self.model_dump()
         key = data.pop('key', None)
         new_doc_id = self._put(key, data)
         self.key = new_doc_id

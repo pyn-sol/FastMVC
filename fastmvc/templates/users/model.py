@@ -1,6 +1,6 @@
 from fastapi import Request
 from fastapi.responses import RedirectResponse
-from fastmvc.models.html import Alert 
+from fastmvc.models.html import Alert
 from fastmvc.models.database.^{platform.data_model_import}^
 from user.utils import Auth, current_user
 
@@ -9,6 +9,7 @@ auth_handler = Auth()
 
 
 class User(^{platform.data_model}^):
+    key: str or None = None
     username: str
     password: str
 
@@ -37,10 +38,11 @@ class User(^{platform.data_model}^):
     @classmethod
     def new_user(cls, email):
         data = {
+            'key': None,
             'username': email,
             'password': 'N/A'
         }
-        user = User.parse_obj(data)
+        user = User.model_validate(data)
         user.save()
         return user
 
