@@ -1,4 +1,4 @@
-import json 
+import json
 from pathlib import Path
 import os
 import enum
@@ -33,7 +33,7 @@ def __fetch_config():
 
 def set_project_key(project_key: str):
     conf = __fetch_config()
-    conf['project_key'] = project_key 
+    conf['project_key'] = project_key
     with open(CONFIG_PATH, 'w') as j:
         j.write(json.dumps(conf, indent=4))
 

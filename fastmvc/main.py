@@ -36,15 +36,15 @@ def new(project: str, platform: str or None = None):
     plat = __choose_platform(platform)
     if not plat:
         return
-    
+
     new_folder = os.path.join(os.curdir, project)
-    try:      
+    try:
         typer.secho(f"\nBuilding new project: {project}\n", fg='green')
         build_base(new_folder, project, plat)
         typer.echo(f"\n{project} was created.\n")
     except FileExistsError:
         typer.secho(f"'{project}' already exists in this folder.\n", fg='red')
-    
+
 
 @app.command()
 def server():
@@ -93,3 +93,14 @@ def view_config():
     """ view your development configurations """
     conf = utils.config()
     typer.echo(conf)
+
+
+@app.command()
+def help(subject: str):
+    if subject == 'gcloud':
+        typer.echo("""
+        GCLOUD COMMANDS:\n
+        gcloud init              -- choose your configuration file for gcloud
+        gcloud app create        -- create a new app in configured gcloud
+        gcloud app deploy        -- upload files and create a new version of app in cloud.
+        """)
