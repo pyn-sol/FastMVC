@@ -33,9 +33,7 @@ class Auth():
     # GOOGLE OAUTH
     """
     Configuring Google Auth2.0 API Client:
-
-    https://developers.google.com/identity/oauth2/web/guides/get-google-api-clientid
-    click on 'configure a project'
+    https://console.cloud.google.com/apis/credentials/oauthclient
     """
 
     oauth = OAuth(config)

@@ -23,7 +23,7 @@ def signup_form(request: Request):
 @user_router.post('/signup')
 async def signup(request: Request):
     form_data = await request.form()
-    user = User.parse_obj(form_data)
+    user = User.model_validate(form_data)
     response = user.signup()
     return templates.TemplateResponse(
         'user/templates/login.html',
@@ -42,7 +42,7 @@ def login_form(request: Request):
 @user_router.post('/login')
 async def login(request: Request):
     form_data = await request.form()
-    potential_user = User.parse_obj(form_data)
+    potential_user = User.model_validate(form_data)
     result = potential_user.login(request)
     if isinstance(result, Alert):
         return templates.TemplateResponse(
@@ -100,7 +100,7 @@ async def auth(request: Request):
     user = token.get('userinfo')
     if user:
         db_user = User.signup_from_google_login(user.email)
-        request.session['user'] = db_user.dict()
+        request.session['user'] = db_user.model_dump()
         request.session['user'].update(dict(user))
 
     return RedirectResponse(url='/user/dashboard')

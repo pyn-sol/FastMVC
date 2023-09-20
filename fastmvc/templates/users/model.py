@@ -38,7 +38,7 @@ class User(^{platform.data_model}^):
     @classmethod
     def new_user(cls, email):
         data = {
-            'key': None,
+            'key': '',
             'username': email,
             'password': 'N/A'
         }

@@ -29,7 +29,7 @@ def new(request: Request):
 @^{obj}^_router.post('/new', response_model=^{Obj}^)
 async def create(request: Request):
     form_data = await request.form()
-    ^{obj}^ = ^{Obj}^.parse_obj(form_data)
+    ^{obj}^ = ^{Obj}^.model_validate(form_data)
     ^{obj}^.save()
     return RedirectResponse(f'/^{obj}^/{^{obj}^.key}', status_code=303)
 
