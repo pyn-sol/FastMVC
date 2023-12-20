@@ -1,3 +1,2 @@
-# be sure to uncomment these before go live!
-# .env
-# /ignore/
+.env
+/ignore/

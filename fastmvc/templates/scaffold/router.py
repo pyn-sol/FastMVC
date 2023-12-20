@@ -40,7 +40,7 @@ def edit(request: Request, key: str):
     vals = ^{Obj}^.get(key)
     return templates.TemplateResponse(
         '^{obj}^/templates/form.html',
-        context={'request': request, 'vals': vals.dict() })
+        context={'request': request, 'vals': vals.model_dump() })
 
 
 @^{obj}^_router.post("/edit/{key}")

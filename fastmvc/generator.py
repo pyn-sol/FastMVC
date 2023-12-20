@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from os import walk, makedirs
 from secrets import token_urlsafe
-from fastmvc.utilities import config, Platform, get_project_platform
+from fastmvc.utilities import (
+    config, Platform, get_project_platform, get_smtp_defaults, get_default_service_account_file)
 from jinja2 import Environment
 
 
@@ -40,10 +41,10 @@ def __builder(
                 continue
             full_path = Path(dirpath) / filename
             print(f">> {Path(new_path) / filename}")
-            with open(full_path, 'r') as c:
+            with open(full_path, 'r', encoding='utf-8') as c:
                 content = c.read()
 
-            with open(Path(new_path) / filename, 'w+') as o:
+            with open(Path(new_path) / filename, 'w+', encoding='utf-8') as o:
                 o.write(__format(content, format_attrs))
 
 
@@ -171,7 +172,8 @@ def build_base(p: str, project_name: str, platform: Platform) -> None:
     content_attrs = {
         'Obj': project_name.title(),
         'project_key': config('project_key') or '',
-        'platform': platform.name }
+        'platform': platform.name,
+        'service_account': get_default_service_account_file() or None }
 
     ignore_list = list()
     if platform != Platform.GOOGLE_APP_ENGINE:
@@ -286,6 +288,59 @@ def gen_authlib(p: str) -> None:
         content=user_links))
 
 
+def gen_simple_auth(p: str) -> None:
+    """Generates a minimal authorization framework.
+
+    Creates a simple email-based authorization framework with Users model.
+    Sign-in flow is similar to substack.com where there is no password,
+    instead using email confirmation and callback.
+
+    Args:
+        p (str): the current working directory
+    """
+    obj = 'user'
+    format_attrs = {
+        'proj': Path.cwd().name,
+        'obj': obj,
+        'Obj': obj.title(),
+        'platform': __build_platform_specific_info() }
+
+    __builder(
+        project_path=p,
+        generator_path='templates/simple_auth',
+        format_attrs=format_attrs,
+        scaffold_obj_name=obj)
+    update(add_to_main(
+        p,
+        obj,
+        extra_imports=[
+            'from starlette.middleware.sessions import SessionMiddleware\n',
+            'from os import environ\n'],
+        extra_includes=[
+            '\napp.add_middleware(SessionMiddleware, secret_key=environ.get("APP_SECRET"))']))
+    update(add_to_requirements(
+        p,
+        reqs=['itsdangerous', 'httpx', 'pyjwt', 'passlib[bcrypt]']))
+
+    conf = get_smtp_defaults()
+    update(add_to_env(
+        p,
+        APP_SECRET=format_attrs['proj'][0] + token_urlsafe(16),
+        SMTP_PORT=int(conf.get('SMTP_PORT', 587)),
+        SMTP_SERVER=conf.get('SMTP_SERVER', "smtp.server.com"),
+        SMTP_LOGIN=conf.get('SMTP_LOGIN', "mail_server_account"),
+        SMTP_PASSWORD=conf.get('SMTP_PASSWORD', "mail_server_password"),
+        SMTP_SENDER_NAME=format_attrs['proj'].title(),
+        SMTP_SENDER_EMAIL=f"no-reply@{format_attrs['proj']}.com"))
+
+    with open(Path(__file__).parent.resolve() / 'templates/scaffold_helpers/user_login.html', 'r') as o:
+        user_links = o.read()
+
+    update(add_to_navlinks(
+        p,
+        content=user_links))
+
+
 """
 UPDATERS
 """
@@ -376,7 +431,7 @@ def add_to_env(p: str, **kwargs) -> File:
     with open(env_file, 'r') as e:
         file_env = e.readlines()
     file_env += [
-        f"{k}={v}"
+        f"""{k}="{v.replace('"', '')}" """
         for k, v in kwargs.items()]
     return File(
         filepath=env_file,

@@ -1,7 +1,9 @@
 import typer
 import os
 from fastmvc import __version__
-from fastmvc.generator import build_base, gen_scaffold, gen_authlib
+from fastmvc.generator import (
+    build_base, gen_scaffold,
+    gen_authlib, gen_simple_auth)
 from typing import List
 import fastmvc.utilities as utils
 
@@ -42,6 +44,8 @@ def new(project: str, platform: str or None = None):
         typer.secho(f"\nBuilding new project: {project}\n", fg='green')
         build_base(new_folder, project, plat)
         typer.echo(f"\n{project} was created.\n")
+        if plat == utils.Platform.GOOGLE_APP_ENGINE and not utils.get_default_service_account_file():
+            typer.secho("(: Don't forget to provide your service-account-file.json in the /ignore folder :)\n", fg="blue")
     except FileExistsError:
         typer.secho(f"'{project}' already exists in this folder.\n", fg='red')
 
@@ -74,18 +78,14 @@ def auth():
     typer.echo(f"\nAuth was created.\n")
 
 
-# @app.command()
-# def set_project_key(project_key: str):
-#     """ set your development project key for Deta for faster builds """
-#     utils.set_project_key(project_key)
-#     typer.secho("Project Key successfully set.", fg='green')
-
-
-# @app.command()
-# def clear_project_key():
-#     """ clear your Deta development project key """
-#     utils.clear_project_key()
-#     typer.secho("Project Key successfully cleared.", fg='green')
+@app.command()
+def simple_auth():
+    """ generate simple email authorization framework and users """
+    typer.secho(f"\nGenerating views and router for: User\n", fg='green')
+    gen_simple_auth(os.curdir)
+    typer.echo(f"\nAuth was created.\n")
+    if not utils.get_smtp_defaults():
+        typer.secho("(: Don't forget to set your SMTP settings in the .env file :)\n", fg="blue")
 
 
 @app.command()
@@ -96,7 +96,21 @@ def view_config():
 
 
 @app.command()
+def set_smtp_defaults():
+    """ Set SMTP Defaults based on current project's SMTP Settings in ENV """
+    utils.set_default_smtp_from_current_project()
+    typer.secho('SMTP Defaults set.', fg='green')
+
+
+@app.command()
+def set_service_account_defaults():
+    """ Set default service account file based on current project's service account file """
+    utils.set_default_service_account_file_from_current_project()
+
+
+@app.command()
 def help(subject: str):
+    """ try: 'fastmvc help gcloud' """
     if subject == 'gcloud':
         typer.echo("""
         GCLOUD COMMANDS:\n

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "FastMVC"
-version = "0.1.5"
+version = "0.1.6"
 description = "Rapid application development built for the cloud."
 authors = ["MBeebe <pyn-sol@beebe.dev>"]
 readme = "README.md"
