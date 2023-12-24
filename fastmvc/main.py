@@ -45,28 +45,17 @@ def new(project: str, platform: str or None = None):
         build_base(new_folder, project, plat)
         typer.echo(f"\n{project} was created.\n")
         if plat == utils.Platform.GOOGLE_APP_ENGINE and not utils.get_default_service_account_file():
-            typer.secho("(: Don't forget to provide your service-account-file.json in the /ignore folder :)\n", fg="blue")
+            typer.secho("HINT: Don't forget to provide your service-account-file.json in the /ignore folder\n", fg="blue")
     except FileExistsError:
         typer.secho(f"'{project}' already exists in this folder.\n", fg='red')
 
 
 @app.command()
-def server():
-    """ run the app locally """
-    utils.run_server()
-
-
-@app.command()
-def s():
-    """ alias for 'server' """
-    server()
-
-
-@app.command()
-def scaffold(obj: str, attributes: List[str]):
+def scaffold(obj: str, attributes: List[str], requires_login: bool = False):
     """ create a router and views for a described object """
     typer.secho(f"\nScaffolding views and router for: {obj}\n", fg='green')
-    gen_scaffold(os.curdir, obj, attributes)
+    options = {'requires_login': requires_login}
+    gen_scaffold(os.curdir, obj, attributes, options)
     typer.echo(f"\n{obj} was created.\n")
 
 
@@ -85,7 +74,19 @@ def simple_auth():
     gen_simple_auth(os.curdir)
     typer.echo(f"\nAuth was created.\n")
     if not utils.get_smtp_defaults():
-        typer.secho("(: Don't forget to set your SMTP settings in the .env file :)\n", fg="blue")
+        typer.secho("HINT: Don't forget to set your SMTP settings in the .env file\n", fg="blue")
+
+
+@app.command()
+def server():
+    """ run the app locally """
+    utils.run_server()
+
+
+@app.command()
+def s():
+    """ alias for 'server' """
+    server()
 
 
 @app.command()

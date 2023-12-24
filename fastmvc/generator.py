@@ -89,7 +89,7 @@ def __get_object_attrs(attributes: list) -> dict:
 
 
 def __prepare_model_attrs(obj_attrs: dict) -> str:
-    """Provides attributes for the DetaModel
+    """Provides attributes for the Model
 
     Args:
         obj_attrs (dict): attributes dictionary
@@ -98,7 +98,7 @@ def __prepare_model_attrs(obj_attrs: dict) -> str:
         str: prepared attributes as string
     """
     model_attrs = [
-        f"{k}: {'str' if v in ('text', 'wysiwyg') else v}"
+        f"{k}{'_id' if v == 'references' else ''}: {'str' if v in ('text', 'wysiwyg', 'references') else v}"
         for k, v in obj_attrs.items()]
     return '\n    '.join(model_attrs)
 
@@ -122,7 +122,9 @@ def __create_form_attrs(attributes: dict, helpers_path: str) -> str:
             field_helper = helpers_path / 'str.html'
         with open(field_helper, 'r') as o:
             content = o.read()
-        format_attrs = {'f': f, 'F': f.title()}
+        format_attrs = {
+            'f': f"{f}{'_id' if t == 'references' else ''}",
+            'F': f.title()}
         form_fields.append(__format(content, format_attrs))
     return '\n'.join(form_fields)
 
@@ -204,13 +206,14 @@ def __build_platform_specific_info():
 
 
 
-def gen_scaffold(p: str, obj: str, attributes: list) -> None:
+def gen_scaffold(p: str, obj: str, attributes: list, options: dict) -> None:
     """Generates Model, View, and Controller for a new Object.
 
     Args:
         p (str): the current working directory
         obj (str): the name of the new object to be created
         attributes (list): the attributes of the new object
+        options (dict): dictionary of any additional options.
     """
     obj_attrs = __get_object_attrs(attributes)
     format_attrs = {
@@ -222,7 +225,8 @@ def gen_scaffold(p: str, obj: str, attributes: list) -> None:
             attributes=obj_attrs,
             helpers_path='templates/scaffold_helpers'),
         'wysiwyg': __add_wysiwyg_meta('wysiwyg' in obj_attrs.values()),
-        'platform': __build_platform_specific_info()}
+        'platform': __build_platform_specific_info(),
+        'options': options}
 
     __builder(
         project_path=p,
@@ -239,6 +243,18 @@ def gen_scaffold(p: str, obj: str, attributes: list) -> None:
     update(add_to_navlinks(
         p,
         content=scaffold_link))
+
+    for a, v in obj_attrs.items():
+        if v == 'references':
+            with open(Path(__file__).parent.resolve()
+                    / 'templates/scaffold_helpers/reference_model_list.py',
+                        'r') as o:
+                reference_list = __format(o.read(), {'obj': obj, 'Obj': obj.title(), 'ref': a})
+            update(add_obj_list_to_reference(
+                p,
+                a,
+                content=reference_list,
+                import_statement=f"from {obj}.model import {obj.title()}\n"))
 
 
 def gen_authlib(p: str) -> None:
@@ -431,7 +447,7 @@ def add_to_env(p: str, **kwargs) -> File:
     with open(env_file, 'r') as e:
         file_env = e.readlines()
     file_env += [
-        f"""{k}="{v.replace('"', '')}" """
+        f"""{k}="{v.replace('"', '') if isinstance(v, str) else v}" """
         for k, v in kwargs.items()]
     return File(
         filepath=env_file,
@@ -448,3 +464,16 @@ def add_to_navlinks(p: str, content: str):
             filepath=navlink_file,
             content=file_navlink + '\n\n' + content,
             mode='w')
+
+def add_obj_list_to_reference(p: str, ref: str, content: str, import_statement: str):
+    referencing_model = Path(p) / ref / 'model.py'
+    if Path.exists(referencing_model):
+        with open(referencing_model, 'r') as e:
+            file_model = e.readlines()
+        file_model.insert(1, import_statement)
+        updated_file = ''.join(file_model) + '\n\n' + content
+        return File(
+            filepath=referencing_model,
+            content=updated_file,
+            mode='w'
+        )
